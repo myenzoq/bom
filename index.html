@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฟอร์มกรอกข้อมูล BOM และ Item Details สำหรับ n8n Webhook</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        /* Custom styles for better aesthetics */
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            @apply rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all duration-200;
+        }
+        button {
+            @apply px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 shadow-md hover:shadow-lg;
+        }
+        .message-box {
+            @apply fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-xl z-50 transition-transform duration-300 transform translate-x-full;
+        }
+        .message-box.show {
+            @apply translate-x-0;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+            ฟอร์มกรอกข้อมูล BOM และรายละเอียดสินค้า
+        </h1>
+
+        <form id="dataForm" class="space-y-6">
+            <!-- BOM Information Section -->
+            <fieldset class="border border-gray-200 p-6 rounded-lg shadow-sm">
+                <legend class="text-xl font-semibold text-gray-700 mb-4 px-2 -ml-2">
+                    ข้อมูล BOM
+                </legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="bom" class="block text-sm font-medium text-gray-700 mb-1">
+                            BOM:
+                        </label>
+                        <input
+                            type="text"
+                            id="bom"
+                            name="bom"
+                            value="110001V00"
+                            required
+                            class="w-full"
+                        />
+                    </div>
+                    <div>
+                        <label for="bomName" class="block text-sm font-medium text-gray-700 mb-1">
+                            ชื่อ BOM:
+                        </label>
+                        <input
+                            type="text"
+                            id="bomName"
+                            name="bomName"
+                            value=""
+                            class="w-full"
+                        />
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Item Details Section -->
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">รายละเอียดวัตถุดิบ</h2>
+                <div id="itemDetailsContainer" class="space-y-6">
+                    <!-- Dynamic Item Details will be inserted here from CSV or 'Add Item' button -->
+                </div>
+
+                <!-- CSV Input Area -->
+                <div class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-inner">
+                    <h3 class="text-lg font-bold text-blue-800 mb-4">วางข้อมูลวัตถุดิบจาก CSV ที่นี่</h3>
+                    <textarea
+                        id="csvInput"
+                        rows="6"
+                        placeholder="วางข้อมูล CSV ที่นี่ (แต่ละแถวคือวัตถุดิบหนึ่งชิ้น, แต่ละคอลัมน์คั่นด้วยคอมม่า), ตัวอย่าง:&#10;150062,ขวดแก้วใหม่ ขนาด 100 มล.,100.00,100.00,ใบ,12&#10;150297,ฝาขาว 22 มม. 100 มล.,100.00,100.00,ชิ้น,12"
+                        class="w-full p-2 text-sm text-gray-700"
+                    ></textarea>
+                    <div class="flex flex-col sm:flex-row gap-4 mt-4"> <!-- New flex container for CSV buttons -->
+                        <button
+                            type="button"
+                            id="parseCsvButton"
+                            class="bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 w-full sm:w-auto"
+                        >
+                            วางข้อมูล CSV
+                        </button>
+                        <button
+                            type="submit"
+                            class="bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 w-full sm:w-auto"
+                        >
+                            ส่งข้อมูลไปยัง n8n
+                        </button>
+                    </div>
+                </div>
+
+
+                <!-- Other Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                    <button
+                        type="button"
+                        id="addItem"
+                        class="bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full sm:w-auto"
+                    >
+                        เพิ่มวัตถุดิบ
+                    </button>
+                    <button
+                        type="button"
+                        id="clearForm"
+                        class="bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 w-full sm:w-auto"
+                    >
+                        ล้างข้อมูล
+                    </button>
+                    <!-- The submit button was moved from here -->
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Message Box for notifications (replaces alert()) -->
+    <div id="messageBox" class="message-box">
+        <p id="messageText"></p>
+    </div>
+
+    <script>
+        // Counter for dynamically added item groups
+        let itemCounter = 0; // Initialize at 0 as pre-filled items are removed
+
+        /**
+         * Displays a temporary message box.
+         * @param {string} message - The message to display.
+         * @param {string} type - The type of message ('success', 'error', 'info').
+         */
+        function showMessage(message, type = 'info') {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+
+            messageText.textContent = message;
+            messageBox.className = 'message-box show'; // Reset classes and show
+
+            // Apply type-specific background colors
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-600');
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-600');
+            } else {
+                messageBox.classList.add('bg-gray-800');
+            }
+
+            // Automatically hide the message after 3 seconds
+            setTimeout(() => {
+                messageBox.className = 'message-box'; // Hide by removing 'show' and color classes
+                messageBox.classList.remove('bg-green-600', 'bg-red-600'); // Clean up color
+            }, 3000);
+        }
+
+        /**
+         * Clears all data from the form and resets dynamic item groups.
+         * Also clears the CSV input textarea.
+         */
+        function clearFormData() {
+            // Reset BOM Name to empty as requested, BOM ID will retain its default or last manual value
+            document.getElementById('bomName').value = '';
+
+            const itemDetailsContainer = document.getElementById('itemDetailsContainer');
+            itemDetailsContainer.innerHTML = ''; // Clear all dynamically added item groups
+
+            document.getElementById('csvInput').value = ''; // Clear the CSV input textarea
+
+            // Reset itemCounter
+            itemCounter = 0;
+            showMessage('ข้อมูลในฟอร์มถูกล้างแล้ว!', 'info');
+        }
+
+        /**
+         * Creates and appends a new item group to the container.
+         * @param {Array} data - An array of values for the input fields.
+         * Expected order: [Item number(0), Product name(1), Quantity(2), Per series(3), Unit(4), Warehouse(5)]
+         */
+        function createAndAppendItemGroup(data = []) {
+            itemCounter++; // Increment counter for unique IDs and titles
+            const container = document.getElementById('itemDetailsContainer');
+            const newItemDiv = document.createElement('div');
+            newItemDiv.classList.add('item-group', 'bg-gray-50', 'p-6', 'rounded-lg', 'border', 'border-gray-100', 'shadow-inner'); // Apply Tailwind classes
+
+            // HTML structure for a new item row
+            newItemDiv.innerHTML = `
+                <h3 class="text-lg font-bold text-gray-700 mb-4">วัตถุดิบ #${itemCounter}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Item number:</label>
+                        <input type="text" name="itemNumber" value="${data[0] || ''}" required class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product name:</label>
+                        <input type="text" name="productName" value="${data[1] || ''}" required class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity:</label>
+                        <input type="number" name="quantity" value="${data[2] || ''}" step="0.01" required class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Per series:</label>
+                        <input type="number" name="perSeries" value="${data[3] || ''}" step="0.01" required class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit:</label>
+                        <input type="text" name="unit" value="${data[4] || ''}" required class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Warehouse:</label>
+                        <input type="text" name="warehouse" value="${data[5] || ''}" class="w-full">
+                    </div>
+                </div>
+            `;
+            container.appendChild(newItemDiv); // Add the new row to the container
+        }
+
+        /**
+         * Parses CSV data from the textarea and populates the form fields.
+         * Expected CSV format per line: Item number, Product name, Quantity, Per series, Unit, Warehouse
+         */
+        function parseCsvAndPopulate() {
+            const csvInput = document.getElementById('csvInput').value;
+            const lines = csvInput.trim().split('\n').filter(line => line.trim() !== ''); // Split by line, remove empty lines
+
+            if (lines.length === 0) {
+                showMessage('ไม่มีข้อมูล CSV ให้วาง!', 'info');
+                return;
+            }
+
+            // Clear existing items before populating from CSV
+            const itemDetailsContainer = document.getElementById('itemDetailsContainer');
+            itemDetailsContainer.innerHTML = '';
+            itemCounter = 0; // Reset item counter
+
+            // Clear BOM Name field as requested
+            document.getElementById('bomName').value = '';
+
+            let parsedCount = 0;
+            lines.forEach((line, index) => {
+                const values = line.split(',').map(value => value.trim());
+
+                if (values.length >= 6) { // Now expecting 6 columns: Item number, Product name, Quantity, Per series, Unit, Warehouse
+                    const itemData = values.slice(0, 6); // Take the first 6 values as item data
+                    createAndAppendItemGroup(itemData);
+                    parsedCount++;
+                } else {
+                    showMessage(`ข้ามบรรทัดที่ ${index + 1}: ข้อมูลไม่ครบถ้วน (ต้องการอย่างน้อย 6 คอลัมน์) -> "${line}"`, 'error');
+                }
+            });
+
+            if (parsedCount > 0) {
+                showMessage(`วางข้อมูลวัตถุดิบ ${parsedCount} รายการจาก CSV สำเร็จ!`, 'success');
+            } else {
+                showMessage('ไม่มีข้อมูล CSV ที่ถูกต้องให้วาง!', 'error');
+            }
+        }
+
+
+        // Event listener for adding new item detail rows (manually)
+        document.getElementById('addItem').addEventListener('click', function() {
+            createAndAppendItemGroup([]); // Create an empty item group for manual input
+        });
+
+        // Event listener for clearing the form
+        document.getElementById('clearForm').addEventListener('click', clearFormData);
+
+        // Event listener for parsing CSV data
+        document.getElementById('parseCsvButton').addEventListener('click', parseCsvAndPopulate);
+
+        // Event listener for form submission
+        document.getElementById('dataForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission behavior
+
+            const bom = document.getElementById('bom').value;
+            const bomName = document.getElementById('bomName').value;
+
+            const itemDetails = [];
+            const itemGroups = document.querySelectorAll('.item-group'); // Select all item group divs
+
+            // Iterate through each item group to extract data
+            itemGroups.forEach(group => {
+                const itemNumber = group.querySelector('input[name="itemNumber"]').value;
+                const productName = group.querySelector('input[name="productName"]').value;
+                // Convert quantity and perSeries to float, default to 0 if invalid
+                const quantity = parseFloat(group.querySelector('input[name="quantity"]').value) || 0;
+                const perSeries = parseFloat(group.querySelector('input[name="perSeries"]').value) || 0;
+                const unit = group.querySelector('input[name="unit"]').value;
+                const warehouse = group.querySelector('input[name="warehouse"]').value;
+
+                itemDetails.push({
+                    "Item number": itemNumber,
+                    "Product name": productName,
+                    "Quantity": quantity,
+                    "Per series": perSeries,
+                    "Unit": unit,
+                    "Warehouse": warehouse
+                });
+            });
+
+            // Construct the final JSON payload
+            const payload = {
+                "BOM": bom,
+                "Name": bomName,
+                "Item Details": itemDetails
+            };
+
+            console.log("Payload:", JSON.stringify(payload, null, 2));
+
+            // IMPORTANT: Replace 'YOUR_N8N_WEBHOOK_URL_HERE' with your actual n8n webhook URL
+            const webhookUrl = 'https://n8n-apmhoydn.ap-southeast-1.clawcloudrun.com/webhook-test/88daf681-1ebd-4c43-a674-31133c587563'; // <--- !!! REPLACE THIS !!!
+
+            if (webhookUrl === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                showMessage('กรุณาเปลี่ยน YOUR_N8N_WEBHOOK_URL_HERE เป็น URL Webhook จริงของคุณก่อนส่งข้อมูล!', 'error');
+                return;
+            }
+
+            try {
+                // Send data using fetch API
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showMessage('ส่งข้อมูลไปยัง n8n สำเร็จ!', 'success');
+                    // Clear the form after successful submission
+                    clearFormData();
+                } else {
+                    const errorText = await response.text();
+                    showMessage(`เกิดข้อผิดพลาดในการส่งข้อมูลไปยัง n8n: ${response.status} - ${errorText}`, 'error');
+                    console.error('Error response:', response.status, errorText);
+                }
+            } catch (error) {
+                // Handle network errors
+                console.error('Error sending data:', error);
+                showMessage(`เกิดข้อผิดพลาดในการเชื่อมต่อ: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
