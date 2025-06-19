@@ -80,39 +80,39 @@
                 </div>
             </fieldset>
 
+            <!-- CSV Input Area - Moved to be above Item Details -->
+            <div id="csvInputArea" class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-inner">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">วางข้อมูลวัตถุดิบจาก CSV ที่นี่</h3>
+                <textarea
+                    id="csvInput"
+                    rows="6"
+                    placeholder="วางข้อมูล CSV ที่นี่ (แต่ละแถวคือวัตถุดิบหนึ่งชิ้น, แต่ละคอลัมน์คั่นด้วยคอมม่า), ตัวอย่าง:&#10;150062,ขวดแก้วใหม่ ขนาด 100 มล.,100.00,100.00,ใบ,12&#10;150297,ฝาขาว 22 มม. 100 มล.,100.00,100.00,ชิ้น,12"
+                    class="w-full p-2 text-sm text-gray-700"
+                ></textarea>
+                <div class="flex flex-col sm:flex-row gap-4 mt-4"> <!-- New flex container for CSV buttons -->
+                    <button
+                        type="button"
+                        id="parseCsvButton"
+                        class="bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 w-full sm:w-auto"
+                    >
+                        วางข้อมูล CSV
+                    </button>
+                    <button
+                        type="submit"
+                        class="bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 w-full sm:w-auto"
+                    >
+                        ส่งข้อมูลไปยัง n8n
+                    </button>
+                </div>
+            </div>
+
+
             <!-- Item Details Section -->
             <div class="mt-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">รายละเอียดวัตถุดิบ</h2>
                 <div id="itemDetailsContainer" class="space-y-6">
                     <!-- Dynamic Item Details will be inserted here from CSV or 'Add Item' button -->
                 </div>
-
-                <!-- CSV Input Area -->
-                <div class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-inner">
-                    <h3 class="text-lg font-bold text-blue-800 mb-4">วางข้อมูลวัตถุดิบจาก CSV ที่นี่</h3>
-                    <textarea
-                        id="csvInput"
-                        rows="6"
-                        placeholder="วางข้อมูล CSV ที่นี่ (แต่ละแถวคือวัตถุดิบหนึ่งชิ้น, แต่ละคอลัมน์คั่นด้วยคอมม่า), ตัวอย่าง:&#10;150062,ขวดแก้วใหม่ ขนาด 100 มล.,100.00,100.00,ใบ,12&#10;150297,ฝาขาว 22 มม. 100 มล.,100.00,100.00,ชิ้น,12"
-                        class="w-full p-2 text-sm text-gray-700"
-                    ></textarea>
-                    <div class="flex flex-col sm:flex-row gap-4 mt-4"> <!-- New flex container for CSV buttons -->
-                        <button
-                            type="button"
-                            id="parseCsvButton"
-                            class="bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 w-full sm:w-auto"
-                        >
-                            วางข้อมูล CSV
-                        </button>
-                        <button
-                            type="submit"
-                            class="bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 w-full sm:w-auto"
-                        >
-                            ส่งข้อมูลไปยัง n8n
-                        </button>
-                    </div>
-                </div>
-
 
                 <!-- Other Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 mt-8">
@@ -130,7 +130,6 @@
                     >
                         ล้างข้อมูล
                     </button>
-                    <!-- The submit button was moved from here -->
                 </div>
             </div>
         </form>
